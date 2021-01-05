@@ -1,7 +1,7 @@
 state("loneecho") {}
 
 startup {
-//settings.Add("Make sure to set the starting time to -8.16s");
+settings.Add("Make sure to set the starting time to -8.16s");
 
 	vars.internalLogFilePath = Directory.GetCurrentDirectory() + "\\autosplitter_loneecho.log";
 	vars.log = (Action<string>)((string logLine) => {
@@ -45,7 +45,6 @@ startup {
 		"Fury Transport Stop At Ship\'s Hull",
 		"Vicinity of Olivia\'s Fury Transport",
 		"Repair Apollo\'s A.I. Processor",
-		"Unpowered Stasis Pod Chamber",
 		"Fury Transport to Olivia\"s Location",
 		"Reunited with Olivia in the Life Support Room",
 		"Reactor Room",
@@ -54,10 +53,12 @@ startup {
 		"Activating the Life Support Systems",
 		"You Only Liv Once"
 	};
-	for (int i = 0; i < vars.splitnames.Length; i++) {
-		settings.Add("split"+i, true, vars.splitnames[i]);
-	}
+	// for (int i = 0; i < vars.splitnames.Length; i++) {
+	// 	settings.Add("split"+i, true, vars.splitnames[i]);
+	// }
 	vars.currentSplit = 0;
+
+	vars.timerModel = new TimerModel { CurrentState = timer };
 
 }
 
@@ -72,6 +73,8 @@ init {
 	vars.log("[Autosplitter] Using log path: '" + vars.logPath + "'");
 
 	vars.reader = new StreamReader(new FileStream(vars.logPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite));
+
+	vars.reader.BaseStream.Seek(0, SeekOrigin.End);
 }
 
 exit {
@@ -92,35 +95,56 @@ update {
 	if (vars.line == null) {
 		return false;
 	}
+
+	
 }
 
-
-start {
-	if (vars.line.Contains("[DIALOGUE] A bit odd, actually. Saying it out loud.")) { 
+reset {
+	if (vars.line.Contains("[DIALOGUE] A bit odd, actually. Saying it out loud.")) {
+		currentSplit = 0;
 		return true;
 	}
 }
 
-reset {
+
+start {
+	if (vars.line.Contains("[DIALOGUE] A bit odd, actually. Saying it out loud.")) {
+		currentSplit = 0;
+		return true;
+	}
 }
 
 isLoading {
 }
 
 split {
-	if (vars.line.Contains("[SAVING]")) {	// split on save
-		var currentSplitLocal = vars.currentSplit;
-		while (currentSplitLocal < vars.splitnames.Length) {
-			if (vars.line.Contains(vars.splitnames[currentSplitLocal])) {
-				vars.currentSplit++;
-				return true;
-			} else {
-				currentSplitLocal++;
+	// try to split
+	try {
+		if (vars.line.Contains("[SAVING]")) {	// split on save
+			vars.log(vars.line);
+			var currentSplitLocal = vars.currentSplit;
+			while (currentSplitLocal < vars.splitnames.Length) {
+				if (vars.line.Contains(vars.splitnames[currentSplitLocal])) {
+					try {
+						for (int i = 0; i < (currentSplitLocal - vars.currentSplit); i++) {
+							vars.log("Skip");
+							vars.timerModel.SkipSplit();
+						}
+					} catch( Exception e) {
+						vars.log(e.ToString());
+					}
+					vars.currentSplit = ++currentSplitLocal;
+					vars.log("Split");
+					return true;
+				} else {
+					currentSplitLocal++;
+				}
 			}
+		} else if (vars.line.Contains("[DIALOGUE] Improvise.")) {	// Final split
+			return true;
 		}
-	} else if (vars.line.Contains("[DIALOGUE] Improvise.")) {	// Final split
-		return true;	
-	} else {	// Ignore all other lines
-		return false;
+	}
+	catch (Exception e) {
+		vars.log(e.ToString());
 	}
 }
