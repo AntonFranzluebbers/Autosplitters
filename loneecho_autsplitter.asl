@@ -101,7 +101,7 @@ update {
 
 reset {
 	if (vars.line.Contains("[DIALOGUE] A bit odd, actually. Saying it out loud.")) {
-		currentSplit = 0;
+		vars.currentSplit = 0;
 		return true;
 	}
 }
@@ -109,7 +109,7 @@ reset {
 
 start {
 	if (vars.line.Contains("[DIALOGUE] A bit odd, actually. Saying it out loud.")) {
-		currentSplit = 0;
+		vars.currentSplit = 0;
 		return true;
 	}
 }
